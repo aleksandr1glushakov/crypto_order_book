@@ -22,9 +22,9 @@ app.get('/orderbook/:asset?', (req, res) => {
     const asset = req.params.asset?.toUpperCase() || "BTC";
     switch(asset) {
         case "BTC":
-            res.json(btcOrderbook);
+            return res.json(btcOrderbook);
         case "ETH":
-            res.json(ethOrderbook);
+            return res.json(ethOrderbook);
     }
 })
 
