@@ -4,12 +4,16 @@ import {Asset} from "../types/trade";
 import {OrderbookViewModel} from "../types/orderbook";
 import {fetchOrderbook} from "../api/api";
 import OrderbookTable from "../components/OrderbookTable";
+import Notification from "../components/Notification";
 
 
 const OrderbookPage: React.FC = () => {
     const [asset, setAsset] = useState<Asset>(Asset.BTC);
     const [orderbook, setOrderbook] = useState<OrderbookViewModel | null>(null);
     const [loading, setLoading] = useState(false);
+    const [errorMsg, setErrorMsg] = useState('');
+
+    const REFRESH_INTERVAL_MS = 5000;
 
 
     useEffect(()=>{
@@ -17,13 +21,16 @@ const OrderbookPage: React.FC = () => {
 
         const load = async () =>{
             setLoading(true);
+            setErrorMsg('');
             try{
                 const data = await fetchOrderbook(asset);
                 if (isMounted) {
                     setOrderbook(data);
                 }
             } catch (error) {
-                console.error('Failed to load orderbook' , error);
+                if(isMounted){
+                    setErrorMsg(error instanceof Error ? error.message : 'Failed to load orderbook');
+                }
             } finally {
                 if (isMounted) {
                     setLoading(false);
@@ -34,8 +41,14 @@ const OrderbookPage: React.FC = () => {
         // initial load
         load();
 
+        // polling
+        const interval = setInterval(()=>{
+            load();
+        }, REFRESH_INTERVAL_MS)
+
         return () => {
             isMounted = false;
+            clearInterval(interval);
         };
     }, [asset])
 
@@ -53,6 +66,14 @@ const OrderbookPage: React.FC = () => {
             <h1 style={{marginBottom: '1rem'}}>Crypto Order Book</h1>
 
             <AssetSelector asset={asset} onChange={setAsset}/>
+
+            {errorMsg &&(
+                <Notification
+                    variant='error'
+                    message={errorMsg}
+                    onClose={() => setErrorMsg('')}
+                />
+            )}
 
             <div style={{ flex: 1, display: 'flex', gap: '2rem', overflow: 'hidden'}}>
                 {/* place for left side order book */}
