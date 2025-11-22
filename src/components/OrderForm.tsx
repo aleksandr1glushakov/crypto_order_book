@@ -2,6 +2,7 @@ import {Asset, OrderType, Side, TradeRequest, TradeResponse} from "../types/trad
 import React, { useEffect, useState} from "react";
 import Notification from "./Notification";
 import {round, toStringSafe} from "../utils/round";
+import FormInput from "./FormInput";
 
 
 interface OrderFormProps {
@@ -19,6 +20,12 @@ type FormState = {
     notional: string;
 };
 
+type FormValidity = {
+    price: boolean;
+    quantity: boolean;
+    notional: boolean;
+};
+
 type LastEdited = 'quantity' | 'notional' | null;
 
 
@@ -34,6 +41,12 @@ const OrderForm: React.FC<OrderFormProps> = ({
         price: '',
         quantity: '',
         notional: '',
+    });
+
+    const [validity, setValidity] = useState<FormValidity>({
+        price: true,
+        quantity: true,
+        notional: true,
     });
 
     const [lastEdited, setLastEdited] = useState<LastEdited>(null);
@@ -72,15 +85,27 @@ const OrderForm: React.FC<OrderFormProps> = ({
 
     }, [form.price, form.quantity, form.notional, lastEdited])
 
-    const handleChange = (field: keyof FormState) =>
-        (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-            const value = e.target.value;
+    const handleFieldChange = (
+        name: string,
+        value: string,
+        isValid: boolean
+    ) => {
+        setForm((prev) => ({
+            ...prev,
+            [name]: value,
+        }));
 
-            setForm((prev) => ({...prev, [field]: value}));
-
-            if(field === 'quantity') setLastEdited('quantity');
-            if(field === 'notional') setLastEdited('notional');
+        if (name === 'price' || name === 'quantity' || name === 'notional') {
+            setValidity((prev) => ({
+                ...prev,
+                [name]: isValid,
+            }));
         }
+
+        if (name === 'quantity') setLastEdited('quantity');
+        if (name === 'notional') setLastEdited('notional');
+    };
+
 
     const handleSideChange = (e: React.ChangeEvent<HTMLSelectElement>) =>{
         const value = e.target.value as Side;
@@ -93,6 +118,11 @@ const OrderForm: React.FC<OrderFormProps> = ({
         }
         setSuccessMsg('');
         setErrorMsg('');
+
+        if (!validity.price || !validity.quantity || !validity.notional) {
+            setErrorMsg('Please fix the highlighted fields.');
+            return;
+        }
 
         const priceNum = Number(form.price);
         const qtyNum = Number(form.quantity);
@@ -115,9 +145,9 @@ const OrderForm: React.FC<OrderFormProps> = ({
             asset,
             side: form.side,
             type: OrderType.LIMIT,
-            price: priceNum,
-            quantity: qtyNum,
-            notional: notionalNum,
+            price: round(priceNum, 6),
+            quantity: round(qtyNum, 6),
+            notional: round(notionalNum, 6),
         };
 
         try {
@@ -225,47 +255,38 @@ const OrderForm: React.FC<OrderFormProps> = ({
                     </label>
                 </div>
 
-                <div>
-                    <label htmlFor={'price-input'}>
-                        Price:&nbsp;
-                        <input
-                            id='price-input'
-                            type='number'
-                            step='0.01'
-                            min='0.01'
-                            value={form.price}
-                            onChange={handleChange('price')}
-                        />
-                    </label>
-                </div>
+                <FormInput
+                    label="Price:"
+                    name="price"
+                    type="number"
+                    value={form.price}
+                    onChange={handleFieldChange}
+                    requiredPositive
+                    step="0.000001"
+                    min="0.000001"
+                />
 
-                <div>
-                    <label htmlFor={'quantity-input'}>
-                        Quantity:&nbsp;
-                        <input
-                            id='quantity-input'
-                            type='number'
-                            step='0.000001'
-                            min='0.000001'
-                            value={form.quantity}
-                            onChange={handleChange('quantity')}
-                        />
-                    </label>
-                </div>
+                <FormInput
+                    label="Quantity:"
+                    name="quantity"
+                    type="number"
+                    value={form.quantity}
+                    onChange={handleFieldChange}
+                    requiredPositive
+                    step="0.000001"
+                    min="0.000001"
+                />
 
-                <div>
-                    <label htmlFor={'notional-input'}>
-                        Notional (price x quantity):&nbsp;
-                        <input
-                            id='notional-input'
-                            type='number'
-                            step='0.000001'
-                            min='0.000001'
-                            value={form.notional}
-                            onChange={handleChange('notional')}
-                        />
-                    </label>
-                </div>
+                <FormInput
+                    label="Notional (price × quantity):"
+                    name="notional"
+                    type="number"
+                    value={form.notional}
+                    onChange={handleFieldChange}
+                    requiredPositive
+                    step="0.000001"
+                    min="0.000001"
+                />
 
                 <button type='submit' disabled={submitting}>
                     {submitting ? 'Submitting...' : 'Place Limit Order'}
