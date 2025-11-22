@@ -94,5 +94,4 @@ const OrderbookTable: React.FC<OrderbookTableProps> = ({orderbook, onPriceClick}
     )
 }
 
-
-export default OrderbookTable;
+export default React.memo(OrderbookTable);

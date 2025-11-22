@@ -1,6 +1,7 @@
 import {Asset, OrderType, Side, TradeRequest, TradeResponse} from "../types/trade";
 import React, { useEffect, useState} from "react";
 import Notification from "./Notification";
+import {round, toStringSafe} from "../utils/round";
 
 
 interface OrderFormProps {
@@ -59,13 +60,13 @@ const OrderForm: React.FC<OrderFormProps> = ({
             const qty = Number(form.quantity) || 0;
             if(qty > 0) {
                 const notional = qty * priceNum;
-                setForm((prev) => ({...prev, notional: String(notional)}))
+                setForm((prev) => ({...prev, notional: toStringSafe(notional, 6)}))
             }
         } else if (lastEdited === 'notional') {
             const notionalNum = Number(form.notional) || 0;
             if(notionalNum > 0){
                 const qty = notionalNum / priceNum;
-                setForm((prev) =>({...prev, quantity: String(qty)}))
+                setForm((prev) =>({...prev, quantity: toStringSafe(qty, 6)}))
             }
         }
 
@@ -159,18 +160,18 @@ const OrderForm: React.FC<OrderFormProps> = ({
                 setForm((prev) => ({
                     ...prev,
                         side: sideToUse,
-                        price: String(priceNum),
-                        quantity: String(qtyNum),
-                        notional: String(notionalNum),
+                        price: toStringSafe(priceNum, 6),
+                        quantity: toStringSafe(qtyNum, 6),
+                        notional: toStringSafe(notionalNum, 6),
             }));
 
             const payload: TradeRequest = {
                 asset,
                     side: sideToUse,
                     type: OrderType.LIMIT,
-                    price: priceNum,
-                    quantity: qtyNum,
-                    notional: notionalNum,
+                    price: round(priceNum, 6),
+                    quantity: round(qtyNum, 6),
+                    notional: round(notionalNum, 6),
             };
 
             (async () => {
@@ -290,4 +291,4 @@ const OrderForm: React.FC<OrderFormProps> = ({
     )
 }
 
-export default OrderForm;
+export default React.memo(OrderForm);

@@ -1,69 +1,31 @@
 import AssetSelector from "../components/AssetSelector";
-import React, {useEffect, useState} from "react";
+import React, {useCallback, useState} from "react";
 import {Asset, Side, TradeRequest, TradeResponse} from "../types/trade";
-import {OrderbookViewModel} from "../types/orderbook";
-import {fetchOrderbook, placeTrade} from "../api/api";
+import { placeTrade} from "../api/api";
 import OrderbookTable from "../components/OrderbookTable";
 import Notification from "../components/Notification";
 import OrderForm from "../components/OrderForm";
+import {useOrderbook} from "../hooks/useOrderbook";
 
 
 const OrderbookPage: React.FC = () => {
     const [asset, setAsset] = useState<Asset>(Asset.BTC);
-    const [orderbook, setOrderbook] = useState<OrderbookViewModel | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [errorMsg, setErrorMsg] = useState('');
-    const REFRESH_INTERVAL_MS = 5000;
 
     const [prefillSide, setPrefillSide] = useState<Side>(Side.BUY);
     const [prefillPrice, setPrefillPrice] = useState<number | null>(null);
     const [autoSubmitTrigger, setAutoSubmitTrigger] = useState(0);
 
-    useEffect(()=>{
-        let isMounted = true;
+    const { orderbook, loading, errorMsg, setErrorMsg } = useOrderbook(asset);
 
-        const load = async () =>{
-            setLoading(true);
-            setErrorMsg('');
-            try{
-                const data = await fetchOrderbook(asset);
-                if (isMounted) {
-                    setOrderbook(data);
-                }
-            } catch (error) {
-                if(isMounted){
-                    setErrorMsg(error instanceof Error ? error.message : 'Failed to load orderbook');
-                }
-            } finally {
-                if (isMounted) {
-                    setLoading(false);
-                }
-            }
-        };
-
-        // initial load
-        load();
-
-        // polling
-        const interval = setInterval(()=>{
-            load();
-        }, REFRESH_INTERVAL_MS)
-
-        return () => {
-            isMounted = false;
-            clearInterval(interval);
-        };
-    }, [asset])
-
-    const handlePlaceTrade = (order: TradeRequest): Promise<TradeResponse> =>{
+    const handlePlaceTrade = useCallback((order: TradeRequest): Promise<TradeResponse> =>{
         return placeTrade(order);
-    }
+    },[])
 
-    const handlePriceClick = (side: Side, price: number) => {
+    const handlePriceClick = useCallback((side: Side, price: number) => {
         setPrefillSide(side);
         setPrefillPrice(price);
         setAutoSubmitTrigger((prev)=> prev + 1)
-    };
+    },[])
 
     return (
         <div style={{
