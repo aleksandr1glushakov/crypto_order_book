@@ -1,10 +1,12 @@
 import React from "react";
 import {OrderbookRow, OrderbookViewModel} from "../types/orderbook";
 import {formatPrice, formatQuantity} from "../utils/formatters";
+import {Side} from "../types/trade";
 
 
 interface OrderbookTableProps {
     orderbook: OrderbookViewModel | null;
+    onPriceClick?: (side: Side, price: number) => void;
 }
 
 const headerCellStyle: React.CSSProperties = {
@@ -18,9 +20,10 @@ const cellStyle: React.CSSProperties = {
     padding: '2px 8px',
     fontSize: 12,
     borderBottom: '1px solid #f3f4f6',
+    cursor: 'pointer',
 };
 
-const OrderbookTable: React.FC<OrderbookTableProps> = ({orderbook}) => {
+const OrderbookTable: React.FC<OrderbookTableProps> = ({orderbook, onPriceClick}) => {
     if(!orderbook) {
         return(
             <div>No Order Book data</div>
@@ -43,7 +46,13 @@ const OrderbookTable: React.FC<OrderbookTableProps> = ({orderbook}) => {
                     <tbody>
                     {orderbook.bids.rows.map((row: OrderbookRow, idx: number) => (
                         <tr key={`bid-${idx}`}>
-                            <td style={{...cellStyle, color: '#16a34a'}}>
+                            <td style={{
+                                ...cellStyle,
+                                color: '#16a34a',
+                                cursor: onPriceClick ? 'pointer' : 'default',
+                            }}
+                                onClick={() => onPriceClick?.(Side.BUY, row.price)}
+                            >
                                 {formatPrice(row.price)}
                             </td>
                             <td style={cellStyle}>{formatQuantity(row.quantity)}</td>
@@ -65,7 +74,13 @@ const OrderbookTable: React.FC<OrderbookTableProps> = ({orderbook}) => {
                     <tbody>
                     {orderbook.asks.rows.map((row: OrderbookRow, idx: number) => (
                         <tr key={`ask-${idx}`}>
-                            <td style={{...cellStyle, color: '#dc2626'}}>
+                            <td style={{
+                                ...cellStyle,
+                                color: '#dc2626',
+                                cursor: onPriceClick ? 'pointer' : 'default',
+                            }}
+                                onClick={() => onPriceClick?.(Side.SELL, row.price)}
+                            >
                                 {formatPrice(row.price)}
                             </td>
                             <td style={cellStyle}>{formatQuantity(row.quantity)}</td>

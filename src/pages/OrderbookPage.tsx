@@ -1,6 +1,6 @@
 import AssetSelector from "../components/AssetSelector";
 import React, {useEffect, useState} from "react";
-import {Asset, TradeRequest, TradeResponse} from "../types/trade";
+import {Asset, Side, TradeRequest, TradeResponse} from "../types/trade";
 import {OrderbookViewModel} from "../types/orderbook";
 import {fetchOrderbook, placeTrade} from "../api/api";
 import OrderbookTable from "../components/OrderbookTable";
@@ -13,9 +13,11 @@ const OrderbookPage: React.FC = () => {
     const [orderbook, setOrderbook] = useState<OrderbookViewModel | null>(null);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
-
     const REFRESH_INTERVAL_MS = 5000;
 
+    const [prefillSide, setPrefillSide] = useState<Side>(Side.BUY);
+    const [prefillPrice, setPrefillPrice] = useState<number | null>(null);
+    const [autoSubmitTrigger, setAutoSubmitTrigger] = useState(0);
 
     useEffect(()=>{
         let isMounted = true;
@@ -57,6 +59,12 @@ const OrderbookPage: React.FC = () => {
         return placeTrade(order);
     }
 
+    const handlePriceClick = (side: Side, price: number) => {
+        setPrefillSide(side);
+        setPrefillPrice(price);
+        setAutoSubmitTrigger((prev)=> prev + 1)
+    };
+
     return (
         <div style={{
             padding: '1rem',
@@ -84,13 +92,22 @@ const OrderbookPage: React.FC = () => {
                 <div style={{ flex: 2, border: '1px solid #e5e7eb', padding: '1rem', overflowY: 'auto' }}>
                     {loading && !orderbook && <p>Loading orderbook...</p>}
                     {!loading && (
-                        <OrderbookTable orderbook={orderbook}/>
+                        <OrderbookTable
+                            orderbook={orderbook}
+                            onPriceClick={handlePriceClick}
+                        />
                     )}
                 </div>
 
                 {/* place for right side order entry form */}
                 <div style={{ flex: 1, border: '1px solid #e5e7eb', padding: '1rem' }}>
-                    <OrderForm asset={asset} onSubmitOrder={handlePlaceTrade}/>
+                    <OrderForm
+                        asset={asset}
+                        onSubmitOrder={handlePlaceTrade}
+                        initialSide={prefillSide}
+                        initialPrice={prefillPrice ?? undefined}
+                        autoSubmitTrigger={autoSubmitTrigger}
+                    />
                 </div>
             </div>
         </div>

@@ -6,6 +6,9 @@ import Notification from "./Notification";
 interface OrderFormProps {
     asset: Asset;
     onSubmitOrder: (order: TradeRequest) => Promise<TradeResponse>;
+    initialSide?: Side;
+    initialPrice?: number | null;
+    autoSubmitTrigger?: number;
 }
 
 type FormState = {
@@ -18,7 +21,13 @@ type FormState = {
 type LastEdited = 'quantity' | 'notional' | null;
 
 
-const OrderForm: React.FC<OrderFormProps> = ({asset, onSubmitOrder}) => {
+const OrderForm: React.FC<OrderFormProps> = ({
+    asset,
+    onSubmitOrder,
+    initialSide,
+    initialPrice,
+    autoSubmitTrigger,
+}) => {
     const [form, setForm] = useState<FormState>({
         side: Side.BUY,
         price: '',
@@ -30,6 +39,17 @@ const OrderForm: React.FC<OrderFormProps> = ({asset, onSubmitOrder}) => {
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [successMsg, setSuccessMsg] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
+    const [lastAutoSubmitTrigger, setLastAutoSubmitTrigger] = useState(0);
+
+    useEffect(() => {
+        if (initialSide == null && initialPrice == null) return;
+
+        setForm((prev) =>({
+            ...prev,
+            side: initialSide ?? prev.side,
+            price: initialPrice != null ? String(initialPrice) : prev.price,
+        }))
+    }, [initialPrice, initialSide]);
 
     useEffect(()=>{
         const priceNum = Number(form.price) || 0;
@@ -67,7 +87,9 @@ const OrderForm: React.FC<OrderFormProps> = ({asset, onSubmitOrder}) => {
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        if (e){
+            e.preventDefault();
+        }
         setSuccessMsg('');
         setErrorMsg('');
 
@@ -117,6 +139,69 @@ const OrderForm: React.FC<OrderFormProps> = ({asset, onSubmitOrder}) => {
         }
     };
 
+
+    useEffect(() => {
+        if (!autoSubmitTrigger) return;
+        if(autoSubmitTrigger === lastAutoSubmitTrigger) return;
+        if (initialPrice == null) return;
+
+        const qtyNum = Number(form.quantity);
+        const priceNum = initialPrice;
+
+            if (!qtyNum || qtyNum <= 0 || !priceNum || priceNum <= 0) {
+                setLastAutoSubmitTrigger(autoSubmitTrigger);
+                return;
+            }
+
+            const notionalNum = qtyNum * priceNum;
+            const sideToUse = initialSide ?? form.side;
+
+                setForm((prev) => ({
+                    ...prev,
+                        side: sideToUse,
+                        price: String(priceNum),
+                        quantity: String(qtyNum),
+                        notional: String(notionalNum),
+            }));
+
+            const payload: TradeRequest = {
+                asset,
+                    side: sideToUse,
+                    type: OrderType.LIMIT,
+                    price: priceNum,
+                    quantity: qtyNum,
+                    notional: notionalNum,
+            };
+
+            (async () => {
+                setSubmitting(true);
+                setSuccessMsg('');
+                setErrorMsg('');
+                try {
+                    const response = await onSubmitOrder(payload);
+                    setSuccessMsg(
+                        `Order placed from orderbook (id=${response.id}, side=${response.side}, qty=${response.quantity}).`
+                        );
+                    } catch (err) {
+                        setErrorMsg(
+                        err instanceof Error
+                        ? err.message : 'Unknown error placing order from orderbook.');
+                    } finally {
+                        setSubmitting(false);
+                        setLastAutoSubmitTrigger(autoSubmitTrigger);
+                    }
+                })();
+        }, [
+        autoSubmitTrigger,
+        lastAutoSubmitTrigger,
+        initialPrice,
+        initialSide,
+        asset,
+        onSubmitOrder,
+        form.quantity,
+        form.side,
+        ]);
+
     return (
         <div>
             <h2 style={{ marginBottom: '0.5rem' }}>Order Entry</h2>
@@ -132,7 +217,7 @@ const OrderForm: React.FC<OrderFormProps> = ({asset, onSubmitOrder}) => {
                 <div>
                     <label htmlFor={'side-select'}>
                         Side:&nbsp;
-                        <select name='side-select' id='side-select' onChange={handleSideChange}>
+                        <select name='side-select' id='side-select' value={form.side} onChange={handleSideChange}>
                             <option value={Side.BUY}>{Side.BUY}</option>
                             <option value={Side.SELL}>{Side.SELL}</option>
                         </select>
