@@ -1,10 +1,11 @@
 import React from 'react';
 import './App.css';
+import OrderbookPage from "./pages/OrderbookPage";
 
 function App() {
   return (
     <div className="App">
-        <h1>Crypto Order Book</h1>
+        <OrderbookPage />
     </div>
   );
 }
