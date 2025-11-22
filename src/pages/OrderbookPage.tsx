@@ -1,10 +1,11 @@
 import AssetSelector from "../components/AssetSelector";
 import React, {useEffect, useState} from "react";
-import {Asset} from "../types/trade";
+import {Asset, TradeRequest, TradeResponse} from "../types/trade";
 import {OrderbookViewModel} from "../types/orderbook";
-import {fetchOrderbook} from "../api/api";
+import {fetchOrderbook, placeTrade} from "../api/api";
 import OrderbookTable from "../components/OrderbookTable";
 import Notification from "../components/Notification";
+import OrderForm from "../components/OrderForm";
 
 
 const OrderbookPage: React.FC = () => {
@@ -52,6 +53,9 @@ const OrderbookPage: React.FC = () => {
         };
     }, [asset])
 
+    const handlePlaceTrade = (order: TradeRequest): Promise<TradeResponse> =>{
+        return placeTrade(order);
+    }
 
     return (
         <div style={{
@@ -86,8 +90,7 @@ const OrderbookPage: React.FC = () => {
 
                 {/* place for right side order entry form */}
                 <div style={{ flex: 1, border: '1px solid #e5e7eb', padding: '1rem' }}>
-                    <h2>Order Entry</h2>
-                    <p>Order entry form will be added here...</p>
+                    <OrderForm asset={asset} onSubmitOrder={handlePlaceTrade}/>
                 </div>
             </div>
         </div>

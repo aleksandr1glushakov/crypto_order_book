@@ -10,9 +10,10 @@ interface AssetSelectorProps {
 const AssetSelector: React.FC<AssetSelectorProps> = ({asset, onChange}) => {
     return (
         <div style={{marginBottom: '1rem'}}>
-            <label htmlFor="asset-selector">
+            <label htmlFor='asset-selector'>
                 Asset:&nbsp;
                 <select
+                    id='asset-selector'
                     value={asset}
                     onChange={(e)=>onChange(e.target.value as Asset)}
                 >
