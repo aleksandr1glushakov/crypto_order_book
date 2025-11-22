@@ -1,5 +1,5 @@
 import {ApiError, Asset, TradeRequest, TradeResponse} from "../types/trade";
-import {OrderbookRaw} from "../types/orderbook";
+import {OrderbookRaw, OrderbookRow, OrderbookSide, OrderbookViewModel} from "../types/orderbook";
 
 
 const BASEURL: string = '';
@@ -18,6 +18,40 @@ export async function fetchOrderbookRaw(asset: Asset): Promise<OrderbookRaw> {
 
     const data : OrderbookRaw = await response.json();
     return data as OrderbookRaw;
+}
+
+function mapSide(rawSide: [string, string][]): OrderbookSide {
+    const rows: OrderbookRow[] = rawSide.map(([priceStr, qtyStr])=> {
+        const price = Number (priceStr);
+        const quantity = Number(qtyStr);
+        return{
+            price,
+            quantity,
+            total: price*quantity,
+        };
+    });
+
+    const bestPrice = rows.length > 0 ? rows[0].price : null;
+
+    return {rows, bestPrice};
+}
+
+export async function fetchOrderbook(asset: Asset): Promise<OrderbookViewModel> {
+    const raw = await fetchOrderbookRaw(asset);
+
+    const bidsSorted = [...raw.bids].sort(
+        (a,b) => Number(a[0]) - Number(b[0])
+    );
+
+    const asksSorted = [...raw.asks].sort(
+        (a,b) => Number(a[0]) - Number(b[0])
+    );
+
+    return {
+        lastUpdatedId: raw.lastUpdatedId,
+        bids: mapSide(bidsSorted),
+        asks: mapSide(asksSorted),
+    };
 }
 
 

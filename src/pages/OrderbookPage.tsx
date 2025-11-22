@@ -1,10 +1,43 @@
 import AssetSelector from "../components/AssetSelector";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {Asset} from "../types/trade";
+import {OrderbookViewModel} from "../types/orderbook";
+import {fetchOrderbook} from "../api/api";
+import OrderbookTable from "../components/OrderbookTable";
 
 
 const OrderbookPage: React.FC = () => {
     const [asset, setAsset] = useState<Asset>(Asset.BTC);
+    const [orderbook, setOrderbook] = useState<OrderbookViewModel | null>(null);
+    const [loading, setLoading] = useState(false);
+
+
+    useEffect(()=>{
+        let isMounted = true;
+
+        const load = async () =>{
+            setLoading(true);
+            try{
+                const data = await fetchOrderbook(asset);
+                if (isMounted) {
+                    setOrderbook(data);
+                }
+            } catch (error) {
+                console.error('Failed to load orderbook' , error);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        // initial load
+        load();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [asset])
 
 
     return (
@@ -24,8 +57,10 @@ const OrderbookPage: React.FC = () => {
             <div style={{ flex: 1, display: 'flex', gap: '2rem', overflow: 'hidden'}}>
                 {/* place for left side order book */}
                 <div style={{ flex: 2, border: '1px solid #e5e7eb', padding: '1rem', overflowY: 'auto' }}>
-                    <h2>Order Book</h2>
-                    <p>Order data will be displayed here...</p>
+                    {loading && !orderbook && <p>Loading orderbook...</p>}
+                    {!loading && (
+                        <OrderbookTable orderbook={orderbook}/>
+                    )}
                 </div>
 
                 {/* place for right side order entry form */}
