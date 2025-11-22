@@ -32,7 +32,7 @@ const FormInput: React.FC<FormInputProps> = ({
             const num = Number(val);
             if (!num || num <= 0) {
                 isValid = false;
-                errorMsg = 'Value must be > 0';
+                errorMsg = `${name} must be > 0`;
             }
         }
 
